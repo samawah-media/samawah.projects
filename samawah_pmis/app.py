@@ -250,35 +250,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.container():
-    col_logo, col_project, col_nav = st.columns([1, 2, 4])
+    col_nav, col_project, col_logo = st.columns([4, 2, 1])
     
-    # Logo
-    with col_logo:
-        # High quality logo URL from Cloudinary
-        logo_url = "https://res.cloudinary.com/dg4pnw73t/image/upload/v1768640793/%D9%84%D9%88%D8%AC%D9%88_%D8%B3%D9%85%D8%A7%D9%88%D8%A9_qrui2s.png"
-        st.markdown(f'<div style="padding-top: 10px; display: flex; align-items: center; justify-content: center;">'
-                    f'<img src="{logo_url}" width="140">'
-                    f'</div>', unsafe_allow_html=True)
-    
-    # Smart Project Selector
-    with col_project:
-        st.markdown("<div style='padding-top: 20px;'>", unsafe_allow_html=True)
-        
-        # Safety check for projects_df
-        if not projects_df.empty and 'Name' in projects_df.columns:
-            project_options = ["📊 كل المشاريع"] + projects_df['Name'].tolist()
-        else:
-            project_options = ["📊 كل المشاريع (لا توجد بيانات)"]
-            
-        selected_project = st.selectbox(
-            "اختر المشروع",
-            project_options,
-            key="project_selector",
-            label_visibility="collapsed"
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Modern Navigation Menu 
+    # Modern Navigation Menu (Left)
     with col_nav:
         st.markdown("<div style='padding-top: 15px;'>", unsafe_allow_html=True)
         selected_view = option_menu(
@@ -308,6 +282,32 @@ with st.container():
             }
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+    # Smart Project Selector (Center)
+    with col_project:
+        st.markdown("<div style='padding-top: 20px;'>", unsafe_allow_html=True)
+        
+        # Safety check for projects_df
+        if not projects_df.empty and 'Name' in projects_df.columns:
+            project_options = ["📊 كل المشاريع"] + projects_df['Name'].tolist()
+        else:
+            project_options = ["📊 كل المشاريع (لا توجد بيانات)"]
+            
+        selected_project = st.selectbox(
+            "اختر المشروع",
+            project_options,
+            key="project_selector",
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Logo (Right)
+    with col_logo:
+        # High quality logo URL from Cloudinary
+        logo_url = "https://res.cloudinary.com/dg4pnw73t/image/upload/v1768640793/%D9%84%D9%88%D8%AC%D9%88_%D8%B3%D9%85%D8%A7%D9%88%D8%A9_qrui2s.png"
+        st.markdown(f'<div style="padding-top: 10px; display: flex; align-items: center; justify-content: center;">'
+                    f'<img src="{logo_url}" width="140">'
+                    f'</div>', unsafe_allow_html=True)
 
 # Store selections in session state
 st.session_state.current_project = selected_project
@@ -362,6 +362,27 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ---- VIEW: لوحة التحكم (Dashboard) ----
 if selected_view == "لوحة التحكم":
+    # Project Header/Banner
+    if p_info is not None:
+        p_logo = p_info['Logo_URL'] if 'Logo_URL' in p_info and pd.notna(p_info['Logo_URL']) else None
+        
+        hero_col1, hero_col2 = st.columns([3, 1])
+        with hero_col1:
+             st.markdown(f"""
+                <div style="padding: 1rem; border-right: 5px solid {SAMAWAH_NAVY}; background: white; border-radius: 8px;">
+                    <h2 style="margin:0; color: {SAMAWAH_NAVY};">{p_info['Name']}</h2>
+                    <p style="margin:5px 0 0 0; color: #666; font-size: 0.9rem;">{p_info.get('Description', 'إدارة المشروع ومتابعة الإنجاز')}</p>
+                </div>
+            """, unsafe_allow_html=True)
+        with hero_col2:
+            if p_logo:
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%;">
+                        <img src="{p_logo}" style="max-height: 80px; max-width: 100%; object-fit: contain; border-radius: 5px;">
+                    </div>
+                """, unsafe_allow_html=True)
+        st.markdown("---")
+
     # KPIs Row
     c1, c2, c3, c4 = st.columns(4)
     with c1: kpi_card("نسبة الإنجاز", f"{progress_pct}%", f"{completed_tasks} مهمة مكتملة")
