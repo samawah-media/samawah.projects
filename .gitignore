@@ -1,0 +1,6 @@
+credentials.json
+*.xlsx
+.streamlit/
+__pycache__/
+.venv/
+*.pyc
