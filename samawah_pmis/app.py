@@ -315,20 +315,21 @@ st.markdown("---")
 # === Content Rendering Based on Selected View ===
 
 # Filter data based on selected project
-if selected_project == "📊 كل المشاريع":
-    p_info = projects_df.iloc[0] if len(projects_df) > 0 else None
+if selected_project == "📊 كل المشاريع" or "لا توجد بيانات" in selected_project:
+    p_info = projects_df.iloc[0] if (not projects_df.empty and len(projects_df) > 0) else None
     p_id = None
-    p_tasks = tasks_df.copy()
+    p_tasks = tasks_df.copy() if not tasks_df.empty else pd.DataFrame()
 else:
-    matching_projects = projects_df[projects_df['Name'] == selected_project]
-    if not matching_projects.empty:
-        p_info = matching_projects.iloc[0]
-        p_id = p_info['Project_ID']
-        p_tasks = tasks_df[tasks_df['Project_ID'] == p_id].copy()
+    if not projects_df.empty and 'Name' in projects_df.columns:
+        matching_projects = projects_df[projects_df['Name'] == selected_project]
+        if not matching_projects.empty:
+            p_info = matching_projects.iloc[0]
+            p_id = p_info['Project_ID']
+            p_tasks = tasks_df[tasks_df['Project_ID'] == p_id].copy() if not tasks_df.empty else pd.DataFrame()
+        else:
+            p_info, p_id, p_tasks = None, None, pd.DataFrame()
     else:
-        p_info = None
-        p_id = None
-        p_tasks = pd.DataFrame()
+        p_info, p_id, p_tasks = None, None, pd.DataFrame()
 
 # KPIs Calculation (Based on Task Count, Supporting Arabic/English)
 if not p_tasks.empty:
