@@ -305,9 +305,11 @@ with st.container():
     with col_logo:
         # High quality logo URL from Cloudinary
         logo_url = "https://res.cloudinary.com/dg4pnw73t/image/upload/v1768640793/%D9%84%D9%88%D8%AC%D9%88_%D8%B3%D9%85%D8%A7%D9%88%D8%A9_qrui2s.png"
-        st.markdown(f'<div style="padding-top: 10px; display: flex; align-items: center; justify-content: center;">'
-                    f'<img src="{logo_url}" width="140">'
-                    f'</div>', unsafe_allow_html=True)
+        st.markdown(f'''
+            <div style="padding-top: 5px; display: flex; align-items: center; justify-content: center;">
+                <img src="{logo_url}" style="width: 80px; border-radius: 50%; mix-blend-mode: multiply;">
+            </div>
+        ''', unsafe_allow_html=True)
 
 # Store selections in session state
 st.session_state.current_project = selected_project
