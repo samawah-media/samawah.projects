@@ -38,6 +38,57 @@ st.markdown("""
     <meta property="og:description" content="إدارة المشاريع الداخلية والخارجية">
 """, unsafe_allow_html=True)
 
+# --- AUTHENTICATION ---
+def check_password():
+    """Returns `True` if the user had a correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] in st.secrets["passwords"].values():
+            st.session_state["password_correct"] = True
+            # Store the username based on password (optional logic)
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password
+        st.markdown(f"""
+        <style>
+        .stApp {{ background-color: #F7F5F0; }}
+        </style>
+        """, unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.image("https://res.cloudinary.com/dg4pnw73t/image/upload/v1768640793/%D9%84%D9%88%D8%AC%D9%88_%D8%B3%D9%85%D8%A7%D9%88%D8%A9_qrui2s.png", width=150)
+            st.title("بوابة مشاريع سماوة")
+            st.text_input(
+                "يرجى إدخال رمز الدخول", type="password", on_change=password_entered, key="password"
+            )
+            st.caption("🔒 هذا النظام خاص بموظفي سماوة فقط")
+        return False
+        
+    elif not st.session_state["password_correct"]:
+        # Password validation error
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.image("https://res.cloudinary.com/dg4pnw73t/image/upload/v1768640793/%D9%84%D9%88%D8%AC%D9%88_%D8%B3%D9%85%D8%A7%D9%88%D8%A9_qrui2s.png", width=150)
+            st.title("بوابة مشاريع سماوة")
+            st.text_input(
+                "يرجى إدخال رمز الدخول", type="password", on_change=password_entered, key="password"
+            )
+            st.error("😕 رمز الدخول غير صحيح")
+        return False
+    else:
+        # Password correct
+        return True
+
+if not check_password():
+    st.stop()
+
 # --- Custom Branded Fonts Loading ---
 def get_base64_font(font_path):
     with open(font_path, "rb") as f:
