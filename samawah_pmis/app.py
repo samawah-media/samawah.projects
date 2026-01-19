@@ -257,8 +257,8 @@ with st.container():
         st.markdown("<div style='padding-top: 15px;'>", unsafe_allow_html=True)
         selected_view = option_menu(
             menu_title=None,
-            options=["لوحة التحكم", "مخطط جانت", "المهام", "التحديات", "المستندات", "الإعدادات"],
-            icons=["speedometer2", "bar-chart-line", "list-task", "exclamation-triangle", "file-earmark-text", "gear"],
+            options=["لوحة التحكم", "مخطط جانت", "المهام", "التحديات", "المستندات", "الاجتماعات", "الإعدادات"],
+            icons=["speedometer2", "bar-chart-line", "list-task", "exclamation-triangle", "file-earmark-text", "people", "gear"],
             menu_icon="cast",
             default_index=0,
             orientation="horizontal",
@@ -547,6 +547,151 @@ elif selected_view == "المستندات":
             """, unsafe_allow_html=True)
     else:
         st.info("لا توجد مستندات مرتبطة بهذا المشروع.")
+
+# ---- VIEW: الاجتماعات (Meetings) ----
+elif selected_view == "الاجتماعات":
+    st.markdown("### 📅 توصيات الاجتماعات الدورية")
+    st.caption("سجل التوصيات والمهام المطلوبة من الاجتماعات الدورية لمتابعة تقدم المشروع")
+    
+    # Load meeting recommendations data
+    recommendations_df = dm.load_data("MeetingRecommendations")
+    
+    # Filter by project if a specific project is selected
+    if p_id and not recommendations_df.empty and 'Project_ID' in recommendations_df.columns:
+        p_recommendations = recommendations_df[recommendations_df['Project_ID'] == p_id].copy()
+    else:
+        p_recommendations = recommendations_df.copy() if not recommendations_df.empty else pd.DataFrame()
+    
+    # --- Add New Recommendation Form ---
+    st.markdown("#### ➕ إضافة توصية جديدة")
+    
+    with st.form(key="add_recommendation_form", clear_on_submit=True):
+        col_form1, col_form2 = st.columns(2)
+        
+        with col_form1:
+            rec_date = st.date_input("📅 تاريخ الاجتماع", value=datetime.now().date())
+            
+            # Get list of team members from Tasks owners
+            if not tasks_df.empty and 'Owner' in tasks_df.columns:
+                team_members = tasks_df['Owner'].dropna().unique().tolist()
+            else:
+                team_members = ["مدير المشروع"]
+            
+            rec_owner = st.selectbox("👤 المسؤول عن التنفيذ", team_members)
+        
+        with col_form2:
+            rec_task = st.text_area("📝 التوصية / المهمة", height=100, placeholder="أدخل تفاصيل التوصية أو المهمة المطلوبة...")
+            rec_status = st.selectbox("📊 الحالة", ["قيد التنفيذ", "مكتمل", "معلق", "ملغي"])
+        
+        submit_button = st.form_submit_button(label="💾 إضافة التوصية", type="primary", use_container_width=True)
+        
+        if submit_button:
+            if rec_task.strip():
+                # Create new recommendation row
+                new_rec = {
+                    "Project_ID": p_id if p_id else (projects_df.iloc[0]['Project_ID'] if not projects_df.empty else "P001"),
+                    "Date": str(rec_date),
+                    "Recommendation": rec_task.strip(),
+                    "Owner": rec_owner,
+                    "Status": rec_status,
+                    "Created_At": datetime.now().strftime("%Y-%m-%d %H:%M")
+                }
+                
+                # Append to existing dataframe
+                if recommendations_df.empty:
+                    updated_df = pd.DataFrame([new_rec])
+                else:
+                    updated_df = pd.concat([recommendations_df, pd.DataFrame([new_rec])], ignore_index=True)
+                
+                # Save to data source
+                if dm.save_meeting_recommendations(updated_df):
+                    st.success("✅ تم إضافة التوصية بنجاح!")
+                    st.rerun()
+                else:
+                    st.error("❌ حدث خطأ أثناء حفظ التوصية")
+            else:
+                st.warning("⚠️ الرجاء إدخال نص التوصية")
+    
+    st.markdown("---")
+    
+    # --- Display Existing Recommendations ---
+    st.markdown("#### 📋 سجل التوصيات")
+    
+    if not p_recommendations.empty:
+        # Add filters
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            status_filter = st.multiselect(
+                "تصفية حسب الحالة",
+                p_recommendations['Status'].unique().tolist() if 'Status' in p_recommendations.columns else [],
+                key="rec_status_filter"
+            )
+        with col_f2:
+            owner_filter = st.multiselect(
+                "تصفية حسب المسؤول",
+                p_recommendations['Owner'].unique().tolist() if 'Owner' in p_recommendations.columns else [],
+                key="rec_owner_filter"
+            )
+        
+        # Apply filters
+        filtered_recs = p_recommendations.copy()
+        if status_filter and 'Status' in filtered_recs.columns:
+            filtered_recs = filtered_recs[filtered_recs['Status'].isin(status_filter)]
+        if owner_filter and 'Owner' in filtered_recs.columns:
+            filtered_recs = filtered_recs[filtered_recs['Owner'].isin(owner_filter)]
+        
+        # Display as editable table
+        cols_to_display = [col for col in ['Date', 'Recommendation', 'Owner', 'Status'] if col in filtered_recs.columns]
+        
+        if cols_to_display:
+            edited_recs = st.data_editor(
+                filtered_recs[cols_to_display],
+                column_config={
+                    "Date": st.column_config.DateColumn("📅 التاريخ", format="YYYY-MM-DD"),
+                    "Recommendation": st.column_config.TextColumn("📝 التوصية", width="large"),
+                    "Owner": st.column_config.TextColumn("👤 المسؤول"),
+                    "Status": st.column_config.SelectboxColumn(
+                        "📊 الحالة",
+                        options=["قيد التنفيذ", "مكتمل", "معلق", "ملغي"],
+                        required=True
+                    )
+                },
+                use_container_width=True,
+                hide_index=True,
+                num_rows="dynamic",
+                key="recommendations_editor"
+            )
+            
+            # Save button for edits
+            if st.button("💾 حفظ التعديلات", type="primary"):
+                # Update the main dataframe with edits
+                if dm.save_meeting_recommendations(recommendations_df):
+                    st.toast("تم حفظ التعديلات بنجاح!", icon="✅")
+                else:
+                    st.error("حدث خطأ أثناء الحفظ")
+        else:
+            st.info("لا توجد أعمدة لعرضها.")
+    else:
+        st.info("📭 لا توجد توصيات مسجلة لهذا المشروع. استخدم النموذج أعلاه لإضافة توصية جديدة.")
+    
+    # Statistics summary
+    if not p_recommendations.empty and 'Status' in p_recommendations.columns:
+        st.markdown("---")
+        st.markdown("#### 📊 ملخص الإحصائيات")
+        stat_cols = st.columns(4)
+        total_recs = len(p_recommendations)
+        completed_recs = len(p_recommendations[p_recommendations['Status'] == 'مكتمل'])
+        pending_recs = len(p_recommendations[p_recommendations['Status'] == 'قيد التنفيذ'])
+        suspended_recs = len(p_recommendations[p_recommendations['Status'] == 'معلق'])
+        
+        with stat_cols[0]:
+            kpi_card("إجمالي التوصيات", str(total_recs), "📋 كل التوصيات")
+        with stat_cols[1]:
+            kpi_card("مكتملة", str(completed_recs), f"{round(completed_recs/total_recs*100, 1) if total_recs > 0 else 0}%")
+        with stat_cols[2]:
+            kpi_card("قيد التنفيذ", str(pending_recs), "⏳ جاري العمل")
+        with stat_cols[3]:
+            kpi_card("معلقة", str(suspended_recs), "⚠️ تحتاج متابعة")
 
 # ---- VIEW: الإعدادات (Settings) ----
 elif selected_view == "الإعدادات":

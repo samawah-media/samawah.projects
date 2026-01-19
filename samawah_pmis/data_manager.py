@@ -117,3 +117,21 @@ class DataManager:
                 return True
             except Exception:
                 return False
+
+    def save_meeting_recommendations(self, df):
+        """Saves meeting recommendations to the MeetingRecommendations sheet"""
+        if self.use_gsheets:
+            try:
+                self.conn.update(worksheet="MeetingRecommendations", data=df)
+                return True
+            except Exception as e:
+                st.error(f"Google Sheets update failed: {e}")
+                return False
+        else:
+            try:
+                with pd.ExcelWriter(self.file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                    df.to_excel(writer, sheet_name="MeetingRecommendations", index=False)
+                return True
+            except Exception as e:
+                st.error(f"Local update failed: {e}")
+                return False

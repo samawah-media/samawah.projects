@@ -5,3 +5,4 @@ st-gsheets-connection
 streamlit-authenticator
 openpyxl
 streamlit-option-menu
+streamlit-option-menu
