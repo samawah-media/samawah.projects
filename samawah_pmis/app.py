@@ -568,9 +568,13 @@ elif selected_view == "المهام":
         )
         
         if st.button("💾 حفظ البيانات وتحديث Google Sheets", type="primary"):
-            tasks_df.update(edited_df)
+            # Properly merge edited columns back into the full tasks dataframe
+            for col in edited_df.columns:
+                tasks_df.loc[p_tasks.index, col] = edited_df[col].values
             if dm.save_task_updates(tasks_df):
                 st.toast("تم تحديث البيانات حياً على Google Sheets!", icon="🚀")
+                time.sleep(1)
+                st.rerun()
     else:
         st.info("لا توجد مهام لعرضها.")
 
@@ -715,9 +719,20 @@ elif selected_view == "الاجتماعات":
             
             # Save button for edits
             if st.button("💾 حفظ التعديلات", type="primary"):
-                # Update the main dataframe with edits
-                if dm.save_meeting_recommendations(recommendations_df):
+                # Rebuild full dataframe with the user's edits
+                if p_id and not recommendations_df.empty and 'Project_ID' in recommendations_df.columns:
+                    # Keep other projects' data, replace current project's data with edits
+                    other_projects = recommendations_df[recommendations_df['Project_ID'] != p_id]
+                    edited_recs['Project_ID'] = p_id
+                    edited_recs['Created_At'] = filtered_recs['Created_At'].values[:len(edited_recs)] if 'Created_At' in filtered_recs.columns else datetime.now().strftime("%Y-%m-%d %H:%M")
+                    updated_full_df = pd.concat([other_projects, edited_recs], ignore_index=True)
+                else:
+                    updated_full_df = edited_recs
+                
+                if dm.save_meeting_recommendations(updated_full_df):
                     st.toast("تم حفظ التعديلات بنجاح!", icon="✅")
+                    time.sleep(1)
+                    st.rerun()
                 else:
                     st.error("حدث خطأ أثناء الحفظ")
         else:

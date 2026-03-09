@@ -24,8 +24,8 @@ class DataManager:
         df = pd.DataFrame()
         if self.use_gsheets:
             try:
-                # read() with worksheet name
-                df = self.conn.read(worksheet=sheet_name)
+                # read() with worksheet name, ttl=5 to avoid stale cached data
+                df = self.conn.read(worksheet=sheet_name, ttl=5)
             except Exception as e:
                 # Fallback to local if Google Sheets fail
                 try:
